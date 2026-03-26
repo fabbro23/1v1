@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #f5e6d3;
+      font-family: Arial, sans-serif;
+      color: #5a1e1e;
+    }
+
+    .container {
+      text-align: center;
+    }
+
+    #contador {
+      font-size: 28px;
+      color: #a83232;
+      height: 40px;
+    }
+
+    #resultado {
+      font-size: 48px;
+      margin: 20px 0;
+      min-height: 60px;
+      font-weight: bold;
+    }
+
+    button {
+      padding: 10px 16px;
+      margin: 5px;
+      font-size: 14px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      background: #7a1f1f;
+      color: white;
+    }
+
+    .activo {
+      background: #4b0f0f;
+    }
+
+    /* 🔘 Toggle estilo switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+      margin: 10px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      background: #a83232;
+      border-radius: 34px;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      transition: 0.3s;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background: #f5e6d3;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+
+    input:checked + .slider {
+      background: #2ecc71;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div id="contador"></div>
+  <div id="resultado">...</div>
+
+  <div>
+    <button onclick="modoNormal()" id="btnNormal">Normal</button>
+    <button onclick="modoCompleto()" id="btnCompleto">Completo</button>
+  </div>
+
+  <!-- 🔘 Toggle -->
+  <div>
+    <label class="switch">
+      <input type="checkbox" id="toggleCuenta" onchange="toggleCuenta()">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div>
+    <button onclick="iniciar()">▶</button>
+    <button onclick="detener()">■</button>
+  </div>
+</div>
+
+<script>
+  const accionesRival = [
+    "acerca",
+    "distanciado",
+    "salta en finta"
+  ];
+
+  const accionesJugador = [
+    "cambio de ritmo",
+    "crossover",
+    "finta",
+    "tiro"
+  ];
+
+  let modo = "normal";
+  let intervalo;
+  let cuentaActiva = false;
+
+  function modoNormal() {
+    modo = "normal";
+    btnNormal.classList.add("activo");
+    btnCompleto.classList.remove("activo");
+  }
+
+  function modoCompleto() {
+    modo = "completo";
+    btnCompleto.classList.add("activo");
+    btnNormal.classList.remove("activo");
+  }
+
+  function toggleCuenta() {
+    cuentaActiva = document.getElementById("toggleCuenta").checked;
+  }
+
+  function random(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function hablar(texto) {
+    const voz = new SpeechSynthesisUtterance(texto);
+    speechSynthesis.speak(voz);
+  }
+
+  function beep() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.frequency.value = 800;
+    osc.type = "square";
+
+    osc.start();
+    gain.gain.setValueAtTime(1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+
+    osc.stop(ctx.currentTime + 0.1);
+  }
+
+  function generarTexto() {
+    const rival = random(accionesRival);
+
+    if (modo === "normal") {
+      return rival;
+    } else {
+      const jugador = random(accionesJugador);
+      return rival + " + " + jugador;
+    }
+  }
+
+  function cuentaRegresiva(callback) {
+    let tiempo = 3;
+    contador.textContent = tiempo;
+    beep();
+
+    const intervaloCuenta = setInterval(() => {
+      tiempo--;
+      if (tiempo > 0) {
+        contador.textContent = tiempo;
+        beep();
+      } else {
+        clearInterval(intervaloCuenta);
+        contador.textContent = "";
+        beep();
+        callback();
+      }
+    }, 1000);
+  }
+
+  function ejecutar() {
+    const accion = generarTexto();
+    resultado.textContent = accion;
+    hablar(accion);
+  }
+
+  function ciclo() {
+    if (cuentaActiva) {
+      cuentaRegresiva(ejecutar);
+    } else {
+      ejecutar();
+    }
+  }
+
+  function iniciar() {
+    clearInterval(intervalo);
+    ciclo();
+    intervalo = setInterval(ciclo, 12000);
+  }
+
+  function detener() {
+    clearInterval(intervalo);
+    resultado.textContent = "...";
+    contador.textContent = "";
+    speechSynthesis.cancel();
+  }
+</script>
+
+</body>
+</html>
